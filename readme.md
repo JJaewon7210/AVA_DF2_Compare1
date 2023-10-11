@@ -49,6 +49,13 @@ Follow these steps to use this project effectively:
 
 5. **Evaluating the Model:** Evaluate the trained model by running the 'test\_df2.py' script.
 
+**TODO: Download Pretrained Weights:** You can obtain the pretrained weights. The following metrics are from the validation set of Deepfashion2
+
+   | Pretrained Weights | Download Link | Size (pixels) | mAP(50) | mAP(50-95) | Precision | Recall |
+   | ------------------ | ------------- | ------------- | ------- | ---------- | --------- | ------ |
+   | Pretrained Weights 1 | [Link 1]() | [Size 1] | [mAP(50) 1] | [mAP(50-95) 1] | [Precision 1] | [Recall 1] |
+
+
 Enjoy working with YOWO and DeepFashion2!
 
 License
