@@ -18,7 +18,7 @@ Update the 5 anchors (up, down, right, left, center) with the center as the cent
 def df2_cls_loss(self, p, targets, BCEcls):  # predictions, targets, model
     device = targets.device
     lcls, lbox, lobj = torch.zeros(1, device=device), torch zeros(1, device=device), torch.zeros(1, device=device)
-    tcls,_tbox, indices, _anchors = self.build_targets_ver1(p, targets, cls_target=True)  # targets
+    tcls,_tbox, indices, _anchors = self.build_targets(p, targets, cls_target=True)  # targets
 ```
 
 **Option 2:** 
