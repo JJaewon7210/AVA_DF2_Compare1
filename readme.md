@@ -56,7 +56,7 @@ Follow these steps to use this project effectively:
 5. **Evaluating the Model:**  
    Evaluate the trained model by running the 'test\_df2.py' script.
 
-Download Pretrained Weights:**   
+**Download Pretrained Weights:**   
 You can obtain the pretrained weights. The following metrics are from the validation set of Deepfashion2.
 We trained the model for 50 epochs. The model with 'augmentTrue' applied data augmentation, while 'augmentFalse' indicates training without data augmentation.  
 
