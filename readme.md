@@ -2,7 +2,10 @@
 
 This project focuses on training a model using the DeepFashion2 dataset while freezing the network of YOWO (You Only Watch Once).
 
-![Project Image](TODO: Insert your project image path here)
+![image](https://github.com/JJaewon7210/AVA_DF2_Compare1/assets/96426723/6fde3595-0a69-45b5-99be-172d16405063)
+
+![image](https://github.com/JJaewon7210/AVA_DF2_Compare1/assets/96426723/bab7f689-58a4-4956-8024-35a95f3a590b)
+
 
 ## Features
 
@@ -19,7 +22,6 @@ def df2_cls_loss(self, p, targets, BCEcls):  # predictions, targets, model
 
 **Option 2:** Update all anchors included in the true label.
 
-python
 
 ```python
 def df2_cls_loss(self, p, targets, BCEcls):  # predictions, targets, model
@@ -35,7 +37,11 @@ Follow these steps to use this project effectively:
 
 1. **Clone the Repository:** Begin by cloning this repository to your local machine.
 
-2. **Download Pretrained Weights:** Download the pretrained weights from the provided Google Drive links. Make sure to update the paths in the 'cfg/model.yaml' file.
+2.  **Download Pretrained Weights:** You can obtain the pretrained weights from the following Google Drive links. Ensure to update the paths in the 'cfg/model.yaml' file.
+    
+    *   [resnext-101-kinetics.pth](https://drive.google.com/file/d/1633UbpB0UA73vuinYv19VZHNOY_825Vy/view?usp=sharing)
+    *   [yolo.weights](https://drive.google.com/file/d/1lTNhAmaCm10W-uoCvdNsKSaEGoPBnHse/view?usp=sharing)
+    *   [yowo_ava_16f_s1_best_ap_01790.pth](https://drive.google.com/file/d/1nk2Jkym3HCOP1ZIdZrvOgoZQYE8tivoB/view?usp=sharing)
 
 3. **Download Datasets:** Download the required datasets, namely 'DeepFashion2' and 'AVA Activity Dataset.' Adjust the dataset paths in the 'cfg/ava.yaml' and 'cfg/deepfashion2.yaml' files.
 
