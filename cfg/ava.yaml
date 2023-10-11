@@ -1,0 +1,260 @@
+# AVA Configuration
+
+AVA:
+  FRAME_DIR: "D:/Data/AVA/frames/"
+  FRAME_LIST_DIR: "D:/Data/AVA/frame_lists/"
+  ANNOTATION_DIR: "D:/Data/AVA/annotations/"
+  TRAIN_LISTS:
+    - "train.csv"
+  TEST_LISTS:
+    - "val.csv"
+  TRAIN_GT_BOX_LISTS:
+    - "ava_train_v2.2.csv"
+  VAL_GT_BOX_LISTS:
+    - "ava_val_v2.2.csv"
+  TRAIN_PREDICT_BOX_LISTS: []
+  TEST_PREDICT_BOX_LISTS:
+    - "ava_val_predicted_boxes.csv"
+  DETECTION_SCORE_THRESH: 0.9
+  BGR: False
+  TRAIN_USE_COLOR_AUGMENTATION: False
+  TRAIN_PCA_JITTER_ONLY: True
+  TRAIN_PCA_EIGVAL: [0.225, 0.224, 0.229]
+  TRAIN_PCA_EIGVEC:
+    - [-0.5675, 0.7192, 0.4009]
+    - [-0.5808, -0.0045, -0.8140]
+    - [-0.5836, -0.6948, 0.4203]
+  TEST_FORCE_FLIP: False
+  FULL_TEST_ON_VAL: False
+  LABEL_MAP_FILE: "ava_action_list_v2.2_for_activitynet_2019.pbtxt"
+  EXCLUSION_FILE: "ava_val_excluded_timestamps_v2.2.csv"
+  TRAIN_EXCLUSION_FILE: "ava_train_excluded_timestamps_v2.2.csv"
+  GROUNDTRUTH_FILE: "ava_val_v2.2.csv"
+  IMG_PROC_BACKEND: "cv2"
+  NAMES: ["bend/bow (at the waist)", "crawl", "crouch/kneel", "dance", "fall down",
+         "get up", "jump/leap", "lie/sleep", "martial art", "run/jog", "sit", "stand",
+         "swim", "walk",  # PERSON_MOVEMENT: 14
+         "answer phone", "brush teeth", "carry/hold (an object)", "catch (an object)", "chop",
+         "climb (e.g., a mountain)", "clink glass", "close (e.g., a door, a box)", "cook",
+         "cut", "dig", "dress/put on clothing", "drink", "drive (e.g., a car, a truck)", "eat",
+         "enter", "exit", "extract", "fishing", "hit (an object)", "kick (an object)",
+         "lift/pick up", "listen (e.g., to music)", "open (e.g., a window, a car door)",
+         "paint", "play board game", "play musical instrument", "play with pets", "point to (an object)",
+         "press", "pull (an object)", "push (an object)", "put down", "read",
+         "ride (e.g., a bike, a car, a horse)", "row boat", "sail boat", "shoot", "shovel",
+         "smoke", "stir", "take a photo", "text on/look at a cellphone", "throw",
+         "touch (an object)", "turn (e.g., a screwdriver)", "watch (e.g., TV)", "work on a computer",
+         "write", # OBJECT Manipulation: 49
+         "fight/hit (a person)", "give/serve (an object) to (a person)", "grab (a person)",
+         "hand clap", "hand shake", "hand wave", "hug (a person)", "kick (a person)", "kiss (a person)",
+         "lift (a person)", "listen to (a person)", "play with kids", "push (another person)",
+         "sing to (e.g., self, a person, a group)", "take (an object) from (a person)",
+         "talk to (e.g., self, a person, a group)", "watch (a person)" # PERSON INTERATION: 17
+         ]
+
+# Data Configuration
+DATA:
+  PATH_TO_DATA_DIR: ""
+  PATH_PREFIX: ""
+  CROP_SIZE: 224
+  NUM_FRAMES: 16
+  SAMPLING_RATE: 1
+  MEAN: [0.45, 0.45, 0.45]
+  INPUT_CHANNEL_NUM: [3, 3]
+  STD: [0.225, 0.225, 0.225]
+  TRAIN_JITTER_SCALES: [256, 320]
+  TRAIN_CROP_SIZE: 224
+  TEST_CROP_SIZE: 224
+  RANDOM_FLIP: False
+  MULTI_LABEL: False
+  REVERSE_INPUT_CHANNEL: False
+
+# # Training Configuration
+# TRAIN:
+#   ENABLE: True
+#   DATASET: "ava"
+#   BATCH_SIZE: 64
+#   TOTAL_BATCH_SIZE: 128
+#   LEARNING_RATE: 1e-4
+#   RESUME_PATH: "weights/yowo_ava_32f_s1_best_ap_01905.pth"
+#   DETECT_PATH: ""
+#   ONLY_DETECT: False
+#   EVALUATE: False
+#   BEGIN_EPOCH: 1
+#   END_EPOCH: 6
+#   USE_GROUNDTRUTH: False
+#   USE_SLOWFAST: False
+#   FINE_TUNE: False
+#   MODE: "train"
+#   CLASS_RATIO_FILE: "cfg/categories_ratio.json"
+#   EVAL_PERIOD: 1
+#   CHECKPOINT_PERIOD: 1
+#   AUTO_RESUME: True
+#   CHECKPOINT_FILE_PATH: ""
+#   CHECKPOINT_TYPE: "pytorch"
+#   CHECKPOINT_INFLATE: False
+
+# # Test Configuration
+# TEST:
+#   ENABLE: True
+#   DATASET: "ava"
+#   BATCH_SIZE: 2
+#   CHECKPOINT_FILE_PATH: ""
+#   NUM_ENSEMBLE_VIEWS: 10
+#   NUM_SPATIAL_CROPS: 3
+#   CHECKPOINT_TYPE: "pytorch"
+
+# # BN Configuration
+# BN:
+#   EPSILON: 1e-5
+#   MOMENTUM: 0.1
+#   USE_PRECISE_STATS: False
+#   NUM_BATCHES_PRECISE: 200
+#   WEIGHT_DECAY: 0.0
+#   NORM_TYPE: "batchnorm"
+#   NUM_SPLITS: 1
+#   NUM_SYNC_DEVICES: 1
+
+# # ResNet Configuration
+# RESNET:
+#   DISSECTED: False
+#   TRANS_FUNC: "bottleneck_transform"
+#   NUM_GROUPS: 1
+#   WIDTH_PER_GROUP: 64
+#   INPLACE_RELU: True
+#   STRIDE_1X1: False
+#   ZERO_INIT_FINAL_BN: False
+#   DEPTH: 50
+#   NUM_BLOCK_TEMP_KERNEL: [[3], [4], [6], [3]]
+#   SPATIAL_STRIDES: [[1], [2], [2], [2]]
+#   SPATIAL_DILATIONS: [[1], [1], [1], [1]]
+
+# # Non-local Configuration
+# NONLOCAL:
+#   LOCATION: [[[]], [[]], [[]], [[]]]
+#   GROUP: [[1], [1], [1], [1]]
+#   INSTANTIATION: "dot_product"
+#   POOL:
+#     - [[1, 2, 2], [1, 2, 2]]
+#     - [[1, 2, 2], [1, 2, 2]]
+#     - [[1, 2, 2], [1, 2, 2]]
+#     - [[1, 2, 2], [1, 2, 2]]
+
+# # Model Configuration
+# MODEL:
+#   ARCH: "slowfast"
+#   MODEL_NAME: "SlowFast"
+#   NUM_CLASSES: 400
+#   LOSS_FUNC: "cross_entropy"
+#   SINGLE_PATHWAY_ARCH: ["c2d", "i3d", "slow"]
+#   MULTI_PATHWAY_ARCH: ["slowfast"]
+#   DROPOUT_RATE: 0.5
+#   FC_INIT_STD: 0.01
+#   HEAD_ACT: "softmax"
+#   BACKBONE_2D: "dla34"
+#   BACKBONE_3D: "dla34"
+
+# # SlowFast Configuration
+# SLOWFAST:
+#   BETA_INV: 8
+#   ALPHA: 8
+#   FUSION_CONV_CHANNEL_RATIO: 2
+#   FUSION_KERNEL_SZ: 5
+
+# # Solver Configuration
+# SOLVER:
+#   BASE_LR: 0.1
+#   LR_POLICY: "cosine"
+#   GAMMA: 0.1
+#   STEP_SIZE: 1
+#   STEPS: [3, 4, 5, 6]
+#   LRS: []
+#   LR_DECAY_RATE: 0.5
+#   MAX_EPOCH: 300
+#   MOMENTUM: 0.9
+#   DAMPENING: 0.0
+#   NESTEROV: True
+#   WEIGHT_DECAY: 1e-4
+#   WARMUP_FACTOR: 0.1
+#   WARMUP_EPOCHS: 0.0
+#   WARMUP_START_LR: 0.01
+#   ANCHORS: [0.71626,2.13583,   1.28967,4.15014,   2.12714,5.09344,   3.27212,5.87423,   5.16303,6.33821]
+#   NUM_ANCHORS: 5
+#   OBJECT_SCALE: 5
+#   NOOBJECT_SCALE: 1
+#   CLASS_SCALE: 1
+#   COORD_SCALE: 1
+#   OPTIMIZING_METHOD: "sgd"
+
+# # Weights Configuration
+# WEIGHTS:
+#   BACKBONE_3D: "weights/resnext-101-kinetics.pth"
+#   BACKBONE_2D: "weights/yolo.weights"
+#   FREEZE_BACKBONE_3D: False
+#   FREEZE_BACKBONE_2D: False
+
+# # Demo Configuration
+# DEMO:
+#   ENABLE: False
+#   OUT_PATH: "ava_detections/videos"
+#   LABEL_FILE_PATH: ""
+#   WEBCAM: -1
+#   INPUT_VIDEO: ""
+#   DISPLAY_WIDTH: 0
+#   DISPLAY_HEIGHT: 0
+#   DETECTRON2_CFG: "COCO-Detection/faster_rcnn_R_50_FPN_3x.yaml"
+#   DETECTRON2_WEIGHTS: "detectron2://COCO-Detection/faster_rcnn_R_50_FPN_3x/137849458/model_final_280758.pkl"
+#   DETECTRON2_THRESH: 0.9
+#   BUFFER_SIZE: 0
+#   OUTPUT_FILE: ""
+#   OUTPUT_FPS: -1
+#   INPUT_FORMAT: "BGR"
+#   CLIP_VIS_SIZE: 10
+#   NUM_VIS_INSTANCES: 2
+#   PREDS_BOXES: ""
+#   THREAD_ENABLE: False
+#   NUM_CLIPS_SKIP: 0
+#   GT_BOXES: ""
+#   STARTING_SECOND: 900
+#   FPS: 30
+#   VIS_MODE: "thres"
+#   COMMON_CLASS_THRES: 0.7
+#   UNCOMMON_CLASS_THRES: 0.3
+#   COMMON_CLASS_NAMES:
+#     - "watch (a person)"
+#     - "talk to (e.g., self, a person, a group)"
+#     - "listen to (a person)"
+#     - "touch (an object)"
+#     - "carry/hold (an object)"
+#     - "walk"
+#     - "sit"
+#     - "lie/sleep"
+#     - "bend/bow (at the waist)"
+#   SLOWMO: 1
+
+# # Training and Benchmarking Configuration
+# NUM_GPUS: 1
+# NUM_SHARDS: 1
+# SHARD_ID: 0
+# OUTPUT_DIR: "./tmp"
+# BACKUP_DIR: "backup/ava"
+# RNG_SEED: 1
+# LOG_PERIOD: 10
+# LOG_MODEL_INFO: True
+# DIST_BACKEND: "nccl"
+
+# BENCHMARK:
+#   NUM_EPOCHS: 5
+#   LOG_PERIOD: 100
+#   SHUFFLE: True
+
+# DATA_LOADER:
+#   NUM_WORKERS: 8
+#   PIN_MEMORY: True
+#   ENABLE_MULTI_THREAD_DECODE: False
+
+# DETECTION:
+#   ENABLE: False
+#   ALIGNED: True
+#   SPATIAL_SCALE_FACTOR: 16
+#   ROI_XFORM_RESOLUTION: 7

@@ -1,0 +1,59 @@
+# deep fashion 2
+
+# train and val data as 1) directory: path/images/, 2) file: path/images.txt, or 3) list: [path1/images/, path2/images/]
+path: D:/Data/DeepFashion2
+train: D:/Data/DeepFashion2/train/images/  # train images (relative to 'path')
+val: D:/Data/DeepFashion2/validation/images/  # val images (relative to 'path')
+test:  # test images (optional)
+
+# number of classes
+nc: 13
+
+# class names
+names: [
+   short sleeve top
+  ,long sleeve top
+  ,short sleeve outwear
+  ,long sleeve outwear
+  ,vest
+  ,sling
+  ,shorts
+  ,trousers
+  ,skirt
+  ,short sleeve dress
+  ,long sleeve dress
+  ,vest dress
+  ,sling dress
+  ]
+
+# opt parameter (from main.py in yolov7 project)
+weights: ''  # initial weights path
+epochs: 50  # number of epochs
+batch_size: 8  # total batch size for all GPUs
+batch_size_test: 2
+img_size: [224, 224]  # train image sizes
+rect: false  # rectangular training
+resume: false  # resume most recent training
+nosave: false  # only save final checkpoint
+notest: false  # only test final epoch
+noautoanchor: false  # disable autoanchor check
+bucket: ''  # gsutil bucket
+cache_images: false  # cache images for faster training
+image_weights: true  # use weighted image selection for training
+device: ''  # cuda device, i.e., 0 or 0,1,2,3 or cpu
+single_cls: false  # train multi-class data as single-class
+sync_bn: false  # use SyncBatchNorm, only available in DDP mode
+local_rank: -1  # DDP parameter, do not modify
+workers: 4  # maximum number of dataloader workers
+project: runs/train  # save to project/name
+entity: null  # W&B entity
+name: AVA_DF2  # save to project/name
+exist_ok: false  # existing project/name ok, do not increment
+linear_lr: false  # linear LR
+label_smoothing: 0.0  # Label smoothing epsilon
+upload_dataset: false  # Upload dataset as W&B artifact table
+bbox_interval: 1  # Set bounding-box image logging interval for W&B
+save_period: -1  # Log model after every "save_period" epoch
+artifact_alias: latest  # version of dataset artifact to be used
+v5_metric: false  # assume maximum recall as 1.0 in AP calculation
+log_step: 100 # after every 'logging_step' record the performance to the wandb
