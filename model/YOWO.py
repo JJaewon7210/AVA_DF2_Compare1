@@ -11,15 +11,38 @@ import math
 import yaml
 from utils.general import ConfigObject
 
-
-
-# from model.resnext import resnext101
-# from model.BiFPN import BiFPN
-# from model.cfam import CFAMBlock
 from model.resnext import resnext101
 from model.darknet import Darknet
 from model.cfam import CFAMBlock
 
+# Conv3 Block
+class ConvBlock(nn.Module):
+    def __init__(self, in_channels, out_channels):
+        super(ConvBlock, self).__init__()
+        inter_channels = 1024
+        self.conv_bn_relu1 = nn.Sequential(nn.Conv2d(in_channels, inter_channels, kernel_size=1, bias=False),
+                                    nn.BatchNorm2d(inter_channels),
+                                    nn.ReLU())
+        
+        self.conv_bn_relu2 = nn.Sequential(nn.Conv2d(inter_channels, inter_channels, 3, padding=1, bias=False),
+                                    nn.BatchNorm2d(inter_channels),
+                                    nn.ReLU())
+
+        self.conv_bn_relu3 = nn.Sequential(nn.Conv2d(inter_channels, inter_channels, 3, padding=1, bias=False),
+                                    nn.BatchNorm2d(inter_channels),
+                                    nn.ReLU())
+
+        self.conv_out = nn.Sequential(nn.Dropout2d(0.1, False), nn.Conv2d(inter_channels, out_channels, 1))
+
+    def forward(self, x):
+
+        x = self.conv_bn_relu1(x)
+        x = self.conv_bn_relu2(x)
+        x = self.conv_bn_relu3(x)
+        output = self.conv_out(x)
+
+        return output
+    
 # Detection Head
 class Detect(nn.Module):
     
@@ -138,17 +161,8 @@ class YOWO_CUSTOM(YOWO):
         self.nl = len(cfg.MODEL.ANCHORS) # number of layers
         self.load_pretrain()
         
-        # self.detect_cfam1 = CFAMBlock(425, 1024) # for feature x2d
-        self.detect_cfam1 = CFAMBlock(1024, 1024) # for feature x
-        self.detect_cfam2 = CFAMBlock(1024, 1024)
-        self.head_clo = Detect(no = cfg.nc,
-                                anchors = cfg.MODEL.ANCHORS,
-                                ch = [1024]*len(cfg.MODEL.ANCHORS),
-                                bbox_head=False)
-        self.bbox_clo = Detect(no = 4+1,
-                                anchors = cfg.MODEL.ANCHORS,
-                                ch = [1024]*len(cfg.MODEL.ANCHORS),
-                                bbox_head=True)
+        self.convBlock1 = ConvBlock(1024, 1024) # for feature x
+        self.convBlock2 = ConvBlock(1024, 1024)
         self.heads = Detect(no = 4+1+cfg.nc,
                                 anchors = cfg.MODEL.ANCHORS,
                                 ch = [1024]*len(cfg.MODEL.ANCHORS),
@@ -178,9 +192,8 @@ class YOWO_CUSTOM(YOWO):
         out_act_infer = out_infer[..., 5:]
 
         ## DF2
-        # x = self.detect_cfam1(x_2d) # for feature x2d
-        x = self.detect_cfam1(x) # for feature x
-        x = self.detect_cfam2(x)
+        x = self.convBlock1(x) # for feature x
+        x = self.convBlock2(x)
         outs = self.heads([x])
         
         # -> pred & infer

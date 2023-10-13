@@ -77,7 +77,7 @@ def test_df2(
 
     # Configure
     model.eval()
-    nc = 13
+    nc = opt.nc
     iouv = torch.linspace(0.5, 0.95, 10).to(device)  # iou vector for mAP@0.5:0.95
     niou = iouv.numel()
     labelmap_df2, _ = read_labelmap("D:/Data/DeepFashion2/df2_list.pbtxt")

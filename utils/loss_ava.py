@@ -189,7 +189,7 @@ class ComputeLoss:
         return total_loss, loss_items
     
     def forward_df2(self, p_cls, p_bbox, targets):
-        self.nc = 13
+        self.nc = 6
         p = [torch.cat((bbox, cls), dim=4) for bbox, cls in zip(p_bbox, p_cls)]
         targets = targets.to('cuda:0')
         # total_loss, loss_items = self.__call__(p, targets, self.BCEcls_df2) # for 십자가 build target

@@ -153,7 +153,7 @@ def main(hyp, opt, device, tb_writer):
     logger.info(f'Using {dataloader.num_workers} dataloader workers\n'
                 f'Logging results to {save_dir}\n'
                 f'Starting training for {epochs} epochs...')
-    LOSS = ComputeLoss(detector_head=model.head_clo, hyp=hyp)
+    LOSS = ComputeLoss(detector_head=model.heads, hyp=hyp)
 
     # Start epoch ------------------------------------------------------------------------------------------------------
     for epoch in range(start_epoch, epochs):  
