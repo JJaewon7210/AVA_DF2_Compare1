@@ -1,6 +1,6 @@
 import sys
 import os
-sys.path.append('C:/CNN/AVA_DF2/')
+sys.path.append('C:/Users/jw/Documents/CNN/AVA_DF2_Compare1/')
 
 
 import torch

@@ -2,12 +2,12 @@
 
 # train and val data as 1) directory: path/images/, 2) file: path/images.txt, or 3) list: [path1/images/, path2/images/]
 path: D:/Data/DeepFashion2
-train: D:/Data/DeepFashion2/train/images/train_exclude2459101112.txt  # train images (relative to 'path')
-val: D:/Data/DeepFashion2/validation/images/validation_(yolov7_conf80)_exclude2459101112.txt  # val images (relative to 'path')
+train: D:/Data/DeepFashion2/train/train_exclude2451112.txt  # train images (relative to 'path')
+val: D:/Data/DeepFashion2/validation/validation_(yolo7_conf80)_exclude2451112.txt  # val images (relative to 'path')
 test:  # test images (optional)
 
 # number of classes
-nc: 6
+nc: 8
 
 # class names
 names: [
@@ -17,6 +17,8 @@ names: [
   ,shorts
   ,trousers
   ,skirt
+  ,short sleeve dress
+  ,long sleeve dress
   ]
   
 # # number of classes
@@ -41,7 +43,7 @@ names: [
 
 # opt parameter (from main.py in yolov7 project)
 weights: ''  # initial weights path
-epochs: 50  # number of epochs
+epochs: 100  # number of epochs
 batch_size: 32  # total batch size for all GPUs
 batch_size_test: 8
 img_size: [224, 224]  # train image sizes
@@ -60,7 +62,7 @@ local_rank: -1  # DDP parameter, do not modify
 workers: 8  # maximum number of dataloader workers
 project: runs/train  # save to project/name
 entity: null  # W&B entity
-name: AVA_DF2  # save to project/name
+name: build_target_ver1_vertical0_augO_epoch100  # AVA_DF2 # save to project/name
 exist_ok: false  # existing project/name ok, do not increment
 linear_lr: false  # linear LR
 label_smoothing: 0.0  # Label smoothing epsilon

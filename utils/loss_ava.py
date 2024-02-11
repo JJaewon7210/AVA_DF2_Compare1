@@ -189,7 +189,7 @@ class ComputeLoss:
         return total_loss, loss_items
     
     def forward_df2(self, p_cls, p_bbox, targets):
-        self.nc = 6
+        self.nc = 8
         p = [torch.cat((bbox, cls), dim=4) for bbox, cls in zip(p_bbox, p_cls)]
         targets = targets.to('cuda:0')
         # total_loss, loss_items = self.__call__(p, targets, self.BCEcls_df2) # for 십자가 build target
@@ -200,7 +200,8 @@ class ComputeLoss:
     def df2_cls_loss(self, p, targets, BCEcls):  # predictions, targets, model
         device = targets.device
         lcls, lbox, lobj = torch.zeros(1, device=device), torch.zeros(1, device=device), torch.zeros(1, device=device)
-        tcls, _tbox, indices, _anchors = self.build_targets_ver1(p, targets, cls_target=True)  # targets
+        # tcls, _tbox, indices, _anchors = self.build_targets(p, targets)  # targets
+        tcls, _tbox, indices, _anchors = self.build_targets_ver1(p, targets, cls_target=True, vertical_increase_ratio=0.0)  # targets
 
         # Losses
         for i, pi in enumerate(p):  # layer index, layer predictions
@@ -319,12 +320,12 @@ class ComputeLoss:
                 t = t[j]  # filter # na*nt - filter, 7
 
                 # Offsets
-                gxy = t[:, 2:4]  # grid xy
+                gxy = t[:, 2:4]  # grid xy (10,2)
                 gxi = gain[[2, 3]] - gxy  # inverse
                 j, k = ((gxy % 1. < g) & (gxy > 1.)).T
                 l, m = ((gxi % 1. < g) & (gxi > 1.)).T
                 # j = torch.stack((torch.ones_like(j), j, k, l, m))
-                j = torch.stack((torch.ones_like(j), torch.ones_like(j), torch.ones_like(j), torch.ones_like(j), torch.ones_like(j))) # select all nearby boxes
+                j = torch.stack((torch.ones_like(j), torch.ones_like(j), torch.ones_like(j), torch.ones_like(j), torch.ones_like(j))) # select all nearby boxes (5,)
                 t = t.repeat((5, 1, 1))[j] # (na*nt - filter) * 3 , 7
                 offsets = (torch.zeros_like(gxy)[None] + off[:, None])[j]
                 
@@ -348,9 +349,61 @@ class ComputeLoss:
 
         return tcls, tbox, indices, anch
     
-    def build_targets_ver1(self, p, targets, cls_target=True):
+    def build_targets_verYOLO3(self, p, targets):
+        # Build targets for compute_loss(), input targets(image,class,x,y,w,h)
+        na, nt = self.na, targets.shape[0]  # number of anchors, targets
+        tcls, tbox, indices, anch = [], [], [], []
+        gain = torch.ones(7, device=targets.device).long()  # normalized to gridspace gain
+        ai = torch.arange(na, device=targets.device).float().view(na, 1).repeat(1, nt)  # same as .repeat_interleave(nt)
+        targets = torch.cat((targets.repeat(na, 1, 1), ai[:, :, None]), 2)  # append anchor indices
+        
+        g = 0.5  # bias
+        off = torch.tensor([[0, 0],
+                    ], device=targets.device).float()
+        
+        for i in range(self.nl):
+            anchors = self.anchors[i]
+            gain[2:6] = torch.tensor(p[i].shape)[[3, 2, 3, 2]]  # xyxy gain
+            
+            # Match targets to anchors
+            t = targets * gain # na, nt, 7
+            if nt:
+                # Matches
+                r = t[:, :, 4:6] / anchors[:, None]  # wh ratio # na, nt, 2
+                j = torch.max(r, 1. / r).max(2)[0] < 50  # select all anchor boxes
+                t = t[j]  # filter # na*nt - filter, 7
+
+                # Offsets
+                gxy = t[:, 2:4]  # grid xy
+                j = torch.ones(size=(1, na*nt), device=targets.device, dtype=torch.bool)
+                j, k = ((gxy % 1. < g) & (gxy > 1.)).T
+                j = torch.stack((torch.ones_like(j)))
+                t = t.repeat((1, 1, 1))[j] # (na*nt - filter) * 3 , 7
+                offsets = (torch.zeros_like(gxy)[None] + off[:, None])[j]
+                
+            else:
+                t = targets[0]
+                offsets = 0
+
+            # Define
+            b, c = t[:, :2].long().T  # image, class
+            gxy = t[:, 2:4]  # grid xy
+            gwh = t[:, 4:6]  # grid wh
+            gij = (gxy - offsets).long()
+            gi, gj = gij.T  # grid xy indices
+
+            # Append
+            a = t[:, 6].long()  # anchor indices
+            indices.append((b, a, gj.clamp_(0, gain[3] - 1), gi.clamp_(0, gain[2] - 1)))  # image, anchor, grid indices
+            tbox.append(torch.cat((gxy - gij, gwh), 1))  # box
+            anch.append(anchors[a])  # anchors
+            tcls.append(c)  # class
+
+        return tcls, tbox, indices, anch
+
+    def build_targets_ver1(self, p, targets, cls_target=True, vertical_increase_ratio=0):
         '''
-        return the anchors included in the given targets.
+        return the anchors included in the given targets with adjusting gird height
         '''
         # Build targets for compute_loss(), input targets(image,class,x,y,w,h)
         na, nt = self.na, targets.shape[0]  # number of anchors, targets
@@ -382,12 +435,98 @@ class ComputeLoss:
                 gx = t[:, 2]
                 gy = t[:, 3]
                 gw = t[:, 4]
-                gh = t[:, 5]
+                gh = t[:, 5] * (1 + vertical_increase_ratio)
                 
                 gx1 = gx - gw /2
                 gy1 = gy - gh /2
                 gx2 = gx + gw /2
                 gy2 = gy + gh /2
+                
+                if vertical_increase_ratio > 0:
+                    gy1 = torch.clamp(gy1, min=0.0)
+                    gy2 = torch.clamp(gy2, max=7.0)
+                
+                # Create masks for x and y coordinates based on the range defined by (gx1, gy1) to (gx2, gy2)
+                gx1_expanded = gx1.unsqueeze(-1).unsqueeze(-1).expand(-1, 7, 7)
+                gy1_expanded = gy1.unsqueeze(-1).unsqueeze(-1).expand(-1, 7, 7)
+                gx2_expanded = gx2.unsqueeze(-1).unsqueeze(-1).expand(-1, 7, 7)
+                gy2_expanded = gy2.unsqueeze(-1).unsqueeze(-1).expand(-1, 7, 7)
+                
+                x_mask = (grid_coordinates[..., 0] >= gx1_expanded) & (grid_coordinates[..., 0] <= gx2_expanded)
+                y_mask = (grid_coordinates[..., 1] >= gy1_expanded) & (grid_coordinates[..., 1] <= gy2_expanded)
+                mask = x_mask & y_mask
+                mask = mask.view(-1, 7*7).T
+                
+                # Offsets
+                t = t.repeat((7*7, 1, 1))[mask] # (na*nt - filter) * 3 , 7
+                offsets = (torch.zeros_like(gxy)[None] + off[:, None])[mask]
+                
+            else:
+                t = targets[0]
+                offsets = 0
+
+            # Define
+            b, c = t[:, :2].long().T  # image, class
+            gxy = t[:, 2:4]  # grid xy
+            gwh = t[:, 4:6]  # grid wh
+            gij = offsets.long()
+            gi, gj = gij.T  # grid xy indices
+
+            # Append
+            a = t[:, 6].long()  # anchor indices
+            indices.append((b, a, gj.clamp_(0, gain[3] - 1), gi.clamp_(0, gain[2] - 1)))  # image, anchor, grid indices
+            tcls.append(c)  # class
+            
+            if not cls_target:
+                tbox.append(torch.cat((gxy - gij, gwh), 1))  # box
+                anch.append(anchors[a])  # anchors
+
+            return tcls, tbox, indices, anch
+
+    def build_targets_ver2(self, p, targets, cls_target=True, vertical_increase_ratio=0):
+        '''
+        return the anchors included in the given targets with adjusting gird height
+        '''
+        # Build targets for compute_loss(), input targets(image,class,x,y,w,h)
+        na, nt = self.na, targets.shape[0]  # number of anchors, targets
+        
+        if cls_target:
+            tcls, indices, tbox, anch = [], [], [], []
+        else:
+            tcls, indices, tbox, anch = [], [], None, None
+            
+        gain = torch.ones(7, device=targets.device).long()  # normalized to gridspace gain
+        ai = torch.arange(na, device=targets.device).float().view(na, 1).repeat(1, nt)  # same as .repeat_interleave(nt)
+        targets = torch.cat((targets.repeat(na, 1, 1), ai[:, :, None]), 2)  # append anchor indices
+
+        grid_x, grid_y = torch.meshgrid(torch.arange(7), torch.arange(7))
+        grid_coordinates = torch.stack((grid_x, grid_y), dim=-1).to(device=targets.device)
+        
+        off = grid_coordinates.float()
+        off = off.view(49,2)
+
+        for i in range(1):
+            anchors = self.anchors[i]
+            gain[2:6] = torch.tensor(p[i].shape)[[3, 2, 3, 2]]  # xyxy gain
+            
+            # Match targets to anchors
+            t = targets * gain # na, nt, 7
+            if nt:
+                t = t.view(-1, t.shape[2])
+                gxy = t[:, 2:4]  # grid xy
+                gx = t[:, 2]
+                gy = t[:, 3]
+                gw = t[:, 4]
+                gh = t[:, 5] * (1 + vertical_increase_ratio)
+                
+                gx1 = gx - gw /2
+                gy1 = gy - gh /2
+                gx2 = gx + gw /2
+                gy2 = gy + gh /2
+                
+                if vertical_increase_ratio > 0:
+                    gy1 = torch.clamp(gy1, min=0.0)
+                    gy2 = torch.clamp(gy2, max=7.0)
                 
                 # Create masks for x and y coordinates based on the range defined by (gx1, gy1) to (gx2, gy2)
                 gx1_expanded = gx1.unsqueeze(-1).unsqueeze(-1).expand(-1, 7, 7)

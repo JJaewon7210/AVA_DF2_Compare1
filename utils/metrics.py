@@ -139,7 +139,7 @@ class ConfusionMatrix:
         detection_classes = detections[:, 5].int()
 
         if only_box1:
-            iou = general.box_iou_only_box1(labels[:, 1:], detections[:, :4], standard='box1')
+            iou = general.box_iou_only_box1(labels[:, 1:], detections[:, :4], standard='box2')
         else:
             iou = general.box_iou(labels[:, 1:], detections[:, :4])
 

@@ -360,6 +360,14 @@ def clip_coords(boxes, img_shape):
     boxes[:, 2].clamp_(0, img_shape[1])  # x2
     boxes[:, 3].clamp_(0, img_shape[0])  # y2
 
+def clip_coords_normalize(boxes):
+    # Clip bounding xyxy bounding boxes to image shape (height, width)
+    boxes[:, 0].clamp_(0, 1)  # x1
+    boxes[:, 1].clamp_(0, 1)  # y1
+    boxes[:, 2].clamp_(0, 1)  # x2
+    boxes[:, 3].clamp_(0, 1)  # y2
+    return boxes
+
 
 def bbox_iou(box1, box2, x1y1x2y2=True, GIoU=False, DIoU=False, CIoU=False, eps=1e-7):
     # Returns the IoU of box1 to box2. box1 is 4, box2 is nx4

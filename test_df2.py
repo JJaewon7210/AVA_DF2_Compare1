@@ -11,7 +11,7 @@ import yaml
 from tqdm import tqdm
 
 from utils.general import coco80_to_coco91_class, check_img_size, non_max_suppression, \
-    scale_coords, xyxy2xywh, xywh2xyxy, set_logging, increment_path, ConfigObject, box_iou_only_box1, box_iou
+    scale_coords, clip_coords_normalize, xyxy2xywh, xywh2xyxy, set_logging, increment_path, ConfigObject, box_iou_only_box1, box_iou
 from utils.metrics import ap_per_class, ConfusionMatrix
 from utils.plots import plot_images, read_labelmap, un_normalized_images, plot_batch_image_from_preds
 from utils.torch_utils import select_device, time_synchronized, TracedModel
@@ -104,7 +104,7 @@ def test_df2(
         print("Testing with YOLOv5 AP metric...")
     
     seen = 0
-    confusion_matrix = ConfusionMatrix(nc=nc)
+    confusion_matrix = ConfusionMatrix(nc=nc, conf=conf_thres, iou_thres=iou_thres)
     names_str = opt.names
     names = {k: v for k, v in enumerate(names_str)}
     coco91class = coco80_to_coco91_class()
@@ -153,6 +153,7 @@ def test_df2(
 
             # Predictions
             predn = pred.clone()
+            predn[:, :4] = clip_coords_normalize(predn[:, :4])
             # scale_coords(img[si].shape[1:], predn[:, :4], shapes[si][0], shapes[si][1])  # native-space pred
 
             # Append to text file
@@ -304,10 +305,10 @@ def test_df2(
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(prog='test.py')
-    parser.add_argument('--weights', type=str, default='runs/train/augment_True_feature_x2d/weights/epoch49.pt', help='model.pt path(s)')
-    parser.add_argument('--batch-size', type=int, default=1, help='size of each image batch')
+    parser.add_argument('--weights', type=str, default='runs/train/build_target_ver1_vertical0_augO_epoch100/weights/epoch86.pt', help='model.pt path(s)')
+    parser.add_argument('--batch-size', type=int, default=8, help='size of each image batch')
     parser.add_argument('--img-size', type=int, default=224, help='inference size (pixels)')
-    parser.add_argument('--conf-thres', type=float, default=0.3, help='object confidence threshold')
+    parser.add_argument('--conf-thres', type=float, default=0.5, help='object confidence threshold')
     parser.add_argument('--iou-thres', type=float, default=0.5, help='IOU threshold for NMS')
     parser.add_argument('--cls-thres', type=float, default=0.3, help='class confidence threshold for NMS')
     parser.add_argument('--task', default='val', help='train, val, test, speed or study')
