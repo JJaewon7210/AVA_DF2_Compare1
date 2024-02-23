@@ -27,7 +27,7 @@ Update all anchors included in the true label, which expands bidirectionally. Fo
 def df2_cls_loss(self, p, targets, BCEcls):  # predictions, targets, model
     device = targets.device
     lcls, lbox, lobj = torch.zeros(1, device=device), torch.zeros(1, device=device), torch.zeros(1, device=device)
-    tcls,_tbox, indices, _anchors = this.build_targets_ver1(p, targets, cls_target=True)  # targets
+    tcls,_tbox, indices, _anchors = this.build_targets_ver1(p, targets, cls_target=True, vertical_increase_ratio=0.5)  # targets
 ```
 
 **Option 3: Unidirectional method**   
