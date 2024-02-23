@@ -104,7 +104,7 @@ def test_df2(
         print("Testing with YOLOv5 AP metric...")
     
     seen = 0
-    confusion_matrix = ConfusionMatrix(nc=nc, conf=conf_thres, iou_thres=iou_thres)
+    confusion_matrix = ConfusionMatrix(nc=nc)
     names_str = opt.names
     names = {k: v for k, v in enumerate(names_str)}
     coco91class = coco80_to_coco91_class()
@@ -175,7 +175,7 @@ def test_df2(
                                  "scores": {"class_score": conf},
                                  "domain": "pixel"} for *xyxy, conf, cls in pred.tolist()]
                     boxes = {"predictions": {"box_data": box_data, "class_labels": names}}  # inference-space
-                    wandb_images.append(wandb_logger.wandb.Image(img[si], boxes=boxes, caption=path.name))
+                    # wandb_images.append(wandb_logger.wandb.Image(img[si], boxes=boxes, caption=path.name))
             wandb_logger.log_training_progress(predn, path, names) if wandb_logger and wandb_logger.wandb_run else None
 
             # Append to pycocotools JSON dictionary
@@ -305,8 +305,8 @@ def test_df2(
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(prog='test.py')
-    parser.add_argument('--weights', type=str, default='runs/train/build_target_ver1_vertical0_augO_epoch100/weights/epoch86.pt', help='model.pt path(s)')
-    parser.add_argument('--batch-size', type=int, default=8, help='size of each image batch')
+    parser.add_argument('--weights', type=str, default='runs/train/build_target_tripple_augO_epoch100/weights/epoch99.pt', help='model.pt path(s)')
+    parser.add_argument('--batch-size-test', type=int, default=8, help='size of each image batch')
     parser.add_argument('--img-size', type=int, default=224, help='inference size (pixels)')
     parser.add_argument('--conf-thres', type=float, default=0.5, help='object confidence threshold')
     parser.add_argument('--iou-thres', type=float, default=0.5, help='IOU threshold for NMS')
@@ -321,7 +321,7 @@ if __name__ == '__main__':
     parser.add_argument('--save-conf', action='store_true', help='save confidences in --save-txt labels')
     parser.add_argument('--save-json', action='store_true', help='save a cocoapi-compatible JSON results file')
     parser.add_argument('--project', default='runs/test', help='save to project/name')
-    parser.add_argument('--name', default='exp', help='save to project/name')
+    parser.add_argument('--name', default='build_target_tripple_augO_epoch100', help='save to project/name')
     parser.add_argument('--exist-ok', action='store_true', help='existing project/name ok, do not increment')
     parser.add_argument('--no-trace', action='store_true', help='don`t trace model')
     parser.add_argument('--v5-metric', action='store_true', help='assume maximum recall as 1.0 in AP calculation')
@@ -350,34 +350,19 @@ if __name__ == '__main__':
     opt.merge(opt_model)
     opt.merge(opt_) # overwrite
     
-    #check_requirements()
-
-    if opt.task in ('val', 'test'):  # run normally
-        test_df2(opt,
-             opt.weights,
-             opt.batch_size_test,
-             opt.img_size,
-             opt.conf_thres,
-             opt.iou_thres,
-             opt.cls_thres,
-             opt.save_json,
-             opt.single_cls,
-             opt.augment,
-             opt.verbose,
-             save_txt=opt.save_txt | opt.save_hybrid,
-             save_hybrid=opt.save_hybrid,
-             save_conf=opt.save_conf,
-             v5_metric=opt.v5_metric
-             )
-
-    elif opt.task == 'speed':  # speed benchmarks
-        for w in opt.weights:
-            test_df2(opt, 
-                     w, 
-                     opt.batch_size_test, 
-                     opt.img_size, 
-                     0.25, 
-                     0.45, 
-                     save_json=False, 
-                     plots=False, 
-                     v5_metric=opt.v5_metric)
+    test_df2(opt,
+            opt.weights,
+            opt.batch_size_test,
+            opt.img_size,
+            opt.conf_thres,
+            opt.iou_thres,
+            opt.cls_thres,
+            opt.save_json,
+            opt.single_cls,
+            opt.augment,
+            opt.verbose,
+            save_txt=opt.save_txt | opt.save_hybrid,
+            save_hybrid=opt.save_hybrid,
+            save_conf=opt.save_conf,
+            v5_metric=opt.v5_metric
+            )

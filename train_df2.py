@@ -6,7 +6,6 @@ import random
 from copy import deepcopy
 from threading import Thread
 from pathlib import Path
-import cv2
 
 # Related third party imports
 import yaml
@@ -22,8 +21,8 @@ from model.YOWO import YOWO_CUSTOM as Model
 from utils.general import labels_to_class_weights, increment_path, labels_to_image_weights, init_seeds, \
     get_latest_run, check_img_size, colorstr, ConfigObject, non_max_suppression
 from utils.wandb_logging.wandb_utils import WandbLogger, check_wandb_resume
-from utils.torch_utils import ModelEMA, intersect_dicts, is_parallel
-from utils.plots import plot_images, read_labelmap, un_normalized_images, plot_batch_image_from_preds
+from utils.torch_utils import intersect_dicts, is_parallel
+from utils.plots import read_labelmap, un_normalized_images, plot_batch_image_from_preds
 from utils.loss_ava import ComputeLoss
 from datasets.yolo_datasets import LoadImagesAndLabels, InfiniteDataLoader
 from test_df2 import test_df2
@@ -114,10 +113,6 @@ def main(hyp, opt, device, tb_writer):
     accumulation_steps = 8
     optimizer = create_optimizer_v2(model.parameters(), opt='adam', lr=hyp['lr0'], momentum=hyp['momentum'], weight_decay=hyp['weight_decay'])
     scheduler = torch.optim.lr_scheduler.OneCycleLR(optimizer, max_lr=hyp['lrmax'], total_steps=int(epochs * num_batch / accumulation_steps), div_factor=int(hyp['lrmax'] / hyp['lr0']))
-    # scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=1, gamma=1)
-
-    # EMA
-    # ema = ModelEMA(model)
     
     # 8. Resume
     start_epoch, best_fitness = 0, 1e+9
@@ -125,18 +120,12 @@ def main(hyp, opt, device, tb_writer):
         # Optimizer
         if ckpt['optimizer'] is not None:
             optimizer.load_state_dict(ckpt['optimizer'])
-            # best_fitness = ckpt['best_fitness']
-        # EMA
-        # if ema and ckpt.get('ema'):
-        #     ema.ema.load_state_dict(ckpt['ema'].float().state_dict())
-        #     ema.updates = ckpt['updates']
         
         # Results
         if ckpt.get('training_results') is not None:
             results_file.write_text(ckpt['training_results'])  # write results.txt
         # Epochs
         start_epoch = ckpt['epoch'] + 1
-        start_epoch = 0 # For Transfer Learning
         if opt.resume:
             assert start_epoch > 0, '%s training to %g epochs is finished, nothing to resume.' % (weights, epochs)
         if epochs < start_epoch:
@@ -256,9 +245,6 @@ def main(hyp, opt, device, tb_writer):
                 preds_act = torch.cat((out_bbox_infer, out_act_infer), dim=2)
                 preds_act = non_max_suppression(preds_act, conf_thres=0.5, iou_thres=0.5)
                 Thread(target=plot_batch_image_from_preds, args=(img.copy(), preds_act,str(f_act), labelmap_ava), daemon=True).start()
-
-                # Thread(target=plot_images, args=(imgs, preds_clo_new, None, f_clo), daemon=True).start()
-                # Thread(target=plot_images, args=(imgs, preds_act_new, None, f_act), daemon=True).start()
             
             elif plots and i == 5 and wandb_logger.wandb:
                 wandb_logger.log({"Mosaics": [wandb_logger.wandb.Image(str(x), caption=x.name) for x in
@@ -269,7 +255,6 @@ def main(hyp, opt, device, tb_writer):
         # End epoch --------------------------------------------------------------------------------------------------------
     
         # Start write ------------------------------------------------------------------------------------------------------
-        # ema.update_attr(model, include=['yaml', 'nc', 'hyp', 'gr', 'names', 'stride', 'class_weights'])
         final_epoch = epoch + 1 == epochs
         wandb_logger.current_epoch = epoch + 1        
         
@@ -283,7 +268,7 @@ def main(hyp, opt, device, tb_writer):
                                         dataloader=testloader_df2,
                                         save_dir=save_dir,
                                         verbose=final_epoch,
-                                        plots=plots and final_epoch,
+                                        plots=plots,
                                         wandb_logger=wandb_logger,
                                         compute_loss=False,
                                         is_coco=False,
@@ -325,8 +310,6 @@ def main(hyp, opt, device, tb_writer):
                     'best_fitness': best_fitness,
                     'training_results': results_file.read_text(),
                     'model': deepcopy(model.module if is_parallel(model) else model).half(),
-                    # 'ema': deepcopy(ema.ema).half(),
-                    # 'updates': ema.updates,
                     'optimizer': optimizer.state_dict(),
                     'wandb_id': None}
 
@@ -371,12 +354,12 @@ if __name__ == '__main__':
         assert os.path.isfile(ckpt), 'ERROR: --resume checkpoint does not exist'
 
         with open(Path(ckpt).parent.parent / 'opt.yaml') as f:
+            print(Path(ckpt).parent.parent/'opt.yaml')
             _dict_resume = yaml.safe_load(f)
             opt = ConfigObject(_dict_resume) # replace
         opt.weights, opt.resume, opt.batch_size = ckpt, True, opt.batch_size  # reinstate
         logger.info('Resuming training from %s' % ckpt)
     else:
-        # opt.hyp = opt.hyp or ('hyp.finetune.yaml' if opt.weights else 'hyp.scratch.yaml')
         opt.img_size.extend([opt.img_size[-1]] * (2 - len(opt.img_size)))  # extend to 2 sizes (train, test)
         opt.save_dir = increment_path(Path(opt.project) / opt.name, exist_ok=opt.exist_ok)  # increment run
 

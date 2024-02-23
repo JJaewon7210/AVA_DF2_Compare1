@@ -13,42 +13,27 @@ nc: 8
 names: [
    short sleeve top
   ,long sleeve top
+  # ,short sleeve outwear
   ,long sleeve outwear
+  # ,vest
+  # ,sling
   ,shorts
   ,trousers
   ,skirt
   ,short sleeve dress
   ,long sleeve dress
+  # ,vest dress
+  # ,sling dress
   ]
-  
-# # number of classes
-# nc: 13
-
-# # class names
-# names: [
-#    short sleeve top
-#   ,long sleeve top
-#   ,short sleeve outwear
-#   ,long sleeve outwear
-#   ,vest
-#   ,sling
-#   ,shorts
-#   ,trousers
-#   ,skirt
-#   ,short sleeve dress
-#   ,long sleeve dress
-#   ,vest dress
-#   ,sling dress
-#   ]
 
 # opt parameter (from main.py in yolov7 project)
-weights: ''  # initial weights path
+weights: 'runs/train/build_target_single_augO_epoch100/weights/epoch63.pt'  # initial weights path
 epochs: 100  # number of epochs
 batch_size: 32  # total batch size for all GPUs
 batch_size_test: 8
 img_size: [224, 224]  # train image sizes
 rect: false  # rectangular training
-resume: false  # resume most recent training
+resume: false  # C:/Users/jw/Documents/CNN/AVA_DF2_Compare1/runs/train/build_target_ver2_vertical50_augO_epoch100/weights/best.pt resume most recent training
 nosave: false  # only save final checkpoint
 notest: false  # only test final epoch
 noautoanchor: false  # disable autoanchor check
@@ -62,7 +47,7 @@ local_rank: -1  # DDP parameter, do not modify
 workers: 8  # maximum number of dataloader workers
 project: runs/train  # save to project/name
 entity: null  # W&B entity
-name: build_target_ver1_vertical0_augO_epoch100  # AVA_DF2 # save to project/name
+name: build_target_single_augO_epoch100  # save to project/name
 exist_ok: false  # existing project/name ok, do not increment
 linear_lr: false  # linear LR
 label_smoothing: 0.0  # Label smoothing epsilon

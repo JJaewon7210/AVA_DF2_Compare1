@@ -550,9 +550,9 @@ def box_iou_only_box1(box1, box2, standard='box1'):
     # inter(N,M) = (rb(N,M,2) - lt(N,M,2)).clamp(0).prod(2)
     inter = (torch.min(box1[:, None, 2:], box2[:, 2:]) - torch.max(box1[:, None, :2], box2[:, :2])).clamp(0).prod(2)
     if standard == 'box1':
-        return inter / (area1[:, None] + area2 - inter - area2 + inter)  # iou = inter / (area1 + area2 - inter)
+        return inter / area1[:, None]  # iou = inter / (area1 + area2 - inter)
     elif standard == 'box2':
-        return inter / (area1[:, None] + area2 - inter - area1[:, None] + inter)  # iou = inter / (area1 + area2 - inter)
+        return inter / area2  # iou = inter / (area1 + area2 - inter)
     else:
         raise ValueError("Invalid value for 'standard'. Supported options are 'box1' and 'box2'.")
 
@@ -780,6 +780,7 @@ def non_max_suppression(prediction, conf_thres=0.25, iou_thres=0.45, cls_thres=N
         if multi_label:
             i, j = (x[:, 5:] > cls_thres).nonzero(as_tuple=False).T
             x = torch.cat((box[i], x[i, j + 5, None], j[:, None].float()), 1)
+            # x = torch.cat((box[i], x[i, 4:5], j[:, None].float()), 1)
         else:  # best class only
             conf, j = x[:, 5:].max(1, keepdim=True)
             x = torch.cat((box, conf, j.float()), 1)[conf.view(-1) > cls_thres]

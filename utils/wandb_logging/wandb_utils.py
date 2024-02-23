@@ -79,7 +79,8 @@ class WandbLogger():
     def __init__(self, opt, name, run_id, data_dict, job_type='Training'):
         # Pre-training routine --
         self.job_type = job_type
-        self.wandb, self.wandb_run, self.data_dict = wandb, None if not wandb else wandb.run, data_dict
+        # self.wandb, self.wandb_run, self.data_dict = wandb, None if not wandb else wandb.run, data_dict
+        self.wandb, self.wandb_run, self.data_dict = wandb, wandb.run, data_dict
         # It's more elegant to stick to 1 wandb.init call, but useful config data is overwritten in the WandbLogger's wandb.init call
         if isinstance(opt.resume, str):  # checks resume from artifact
             if opt.resume.startswith(WANDB_ARTIFACT_PREFIX):

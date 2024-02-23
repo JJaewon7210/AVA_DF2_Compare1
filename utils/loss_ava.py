@@ -156,9 +156,6 @@ class ComputeLoss:
 
         # Define criteria
         BCEcls_ava = nn.BCEWithLogitsLoss(pos_weight=torch.tensor([hyp['cls_pw']], device=device))
-        
-        # df2_counts = {7.0: 54577, 0.0: 69986, 10.0: 7891, 1.0: 35192, 8.0: 30516, 6.0: 36053, 3.0: 13414, 11.0: 17936, 9.0: 17203, 4.0: 15899, 12.0: 6488, 2.0: 543, 5.0: 1968}
-        # pos_weights_tensor = torch.tensor([1.0 / df2_counts[key] for key in sorted(df2_counts.keys())], device=device)
         BCEcls_df2 = nn.BCEWithLogitsLoss(pos_weight=torch.tensor([hyp['obj_pw']], device=device))
         BCEobj = nn.BCEWithLogitsLoss(pos_weight=torch.tensor([hyp['obj_pw']], device=device))
         self.cp, self.cn = 1.0, 0.0 # Smooth BCE
@@ -189,7 +186,7 @@ class ComputeLoss:
         return total_loss, loss_items
     
     def forward_df2(self, p_cls, p_bbox, targets):
-        self.nc = 8
+        self.nc = 8 # it is okay to set over 1 just for multiple classes
         p = [torch.cat((bbox, cls), dim=4) for bbox, cls in zip(p_bbox, p_cls)]
         targets = targets.to('cuda:0')
         # total_loss, loss_items = self.__call__(p, targets, self.BCEcls_df2) # for 십자가 build target
@@ -200,8 +197,9 @@ class ComputeLoss:
     def df2_cls_loss(self, p, targets, BCEcls):  # predictions, targets, model
         device = targets.device
         lcls, lbox, lobj = torch.zeros(1, device=device), torch.zeros(1, device=device), torch.zeros(1, device=device)
-        # tcls, _tbox, indices, _anchors = self.build_targets(p, targets)  # targets
-        tcls, _tbox, indices, _anchors = self.build_targets_ver1(p, targets, cls_target=True, vertical_increase_ratio=0.0)  # targets
+        # tcls, _tbox, indices, _anchors = self.build_targets_verYOLO3(p, targets)  # 1. Anchor assignment: point 
+        # tcls, _tbox, indices, _anchors = self.build_targets_ver1(p, targets, cls_target=True, vertical_increase_ratio=0.0)  # 2. Anchor assignment: bidirectional
+        tcls, _tbox, indices, _anchors = self.build_targets_ver2(p, targets, cls_target=True, vertical_increase_ratio=0.5)  # 3. Anchor assignment: bidirectional
 
         # Losses
         for i, pi in enumerate(p):  # layer index, layer predictions
@@ -254,12 +252,7 @@ class ComputeLoss:
                 if self.nc > 1:  # cls loss (only if multiple classes)
                     t = torch.full_like(ps[:, 5:], self.cn, device=device)  # targets
                     t[range(n), tcls[i]] = self.cp
-                    #t[t==self.cp] = iou.detach().clamp(0).type(t.dtype)
                     lcls += BCEcls(ps[:, 5:], t)  # BCE
-
-                # Append targets to text file
-                # with open('targets.txt', 'a') as file:
-                #     [file.write('%11.5g ' * 4 % tuple(x) + '\n') for x in torch.cat((txy[i], twh[i]), 1)]
 
             obji = self.BCEobj(pi[..., 4], tobj)
             lobj += obji # obj loss
@@ -320,12 +313,12 @@ class ComputeLoss:
                 t = t[j]  # filter # na*nt - filter, 7
 
                 # Offsets
-                gxy = t[:, 2:4]  # grid xy (10,2)
+                gxy = t[:, 2:4]  # grid xy
                 gxi = gain[[2, 3]] - gxy  # inverse
                 j, k = ((gxy % 1. < g) & (gxy > 1.)).T
                 l, m = ((gxi % 1. < g) & (gxi > 1.)).T
                 # j = torch.stack((torch.ones_like(j), j, k, l, m))
-                j = torch.stack((torch.ones_like(j), torch.ones_like(j), torch.ones_like(j), torch.ones_like(j), torch.ones_like(j))) # select all nearby boxes (5,)
+                j = torch.stack((torch.ones_like(j), torch.ones_like(j), torch.ones_like(j), torch.ones_like(j), torch.ones_like(j))) # select all nearby boxes
                 t = t.repeat((5, 1, 1))[j] # (na*nt - filter) * 3 , 7
                 offsets = (torch.zeros_like(gxy)[None] + off[:, None])[j]
                 
@@ -377,7 +370,7 @@ class ComputeLoss:
                 gxy = t[:, 2:4]  # grid xy
                 j = torch.ones(size=(1, na*nt), device=targets.device, dtype=torch.bool)
                 j, k = ((gxy % 1. < g) & (gxy > 1.)).T
-                j = torch.stack((torch.ones_like(j)))
+                j = j.view(1, *j.size())
                 t = t.repeat((1, 1, 1))[j] # (na*nt - filter) * 3 , 7
                 offsets = (torch.zeros_like(gxy)[None] + off[:, None])[j]
                 
@@ -401,7 +394,8 @@ class ComputeLoss:
 
         return tcls, tbox, indices, anch
 
-    def build_targets_ver1(self, p, targets, cls_target=True, vertical_increase_ratio=0):
+
+    def build_targets_ver1(self, p, targets, cls_target=True, vertical_increase_ratio=0.5):
         '''
         return the anchors included in the given targets with adjusting gird height
         '''
@@ -483,7 +477,7 @@ class ComputeLoss:
 
             return tcls, tbox, indices, anch
 
-    def build_targets_ver2(self, p, targets, cls_target=True, vertical_increase_ratio=0):
+    def build_targets_ver2(self, p, targets, cls_target=True, vertical_increase_ratio=0.5):
         '''
         return the anchors included in the given targets with adjusting gird height
         '''
@@ -517,13 +511,23 @@ class ComputeLoss:
                 gx = t[:, 2]
                 gy = t[:, 3]
                 gw = t[:, 4]
-                gh = t[:, 5] * (1 + vertical_increase_ratio)
-                
-                gx1 = gx - gw /2
-                gy1 = gy - gh /2
-                gx2 = gx + gw /2
-                gy2 = gy + gh /2
-                
+                gh = t[:, 5]
+
+                gx1 = gx - gw / 2
+                gx2 = gx + gw / 2
+                gy1 = gy - gh / 2
+                gy2 = gy + gh / 2
+
+                # Create boolean masks for classes using logical operations
+                classes = t[:, 1].long()  # Ensure class tensor is of type long for comparison
+                mask_down = (classes == 0) | (classes == 1) | (classes == 2)  # Classes 0, 1, 2 increase height downwards
+                mask_up = (classes == 3) | (classes == 4) | (classes == 5)  # Classes 3, 4, 5 increase height upwards
+
+                # Apply vertical increase ratio based on class
+                gy2[mask_down] = gy[mask_down] + gh[mask_down] * (0.5 + vertical_increase_ratio)
+                gy1[mask_up] = gy[mask_up] - gh[mask_up] * (0.5 + vertical_increase_ratio)
+
+                # Ensure gy1 and gy2 are within bounds
                 if vertical_increase_ratio > 0:
                     gy1 = torch.clamp(gy1, min=0.0)
                     gy2 = torch.clamp(gy2, max=7.0)

@@ -161,8 +161,8 @@ class YOWO_CUSTOM(YOWO):
         self.nl = len(cfg.MODEL.ANCHORS) # number of layers
         self.load_pretrain()
         
-        self.convBlock1 = ConvBlock(1024, 1024) # for feature x
-        self.convBlock2 = ConvBlock(1024, 1024)
+        self.convBlock1 = ConvBlock(425, 1024) # for feature x2d
+        self.convBlock2 = ConvBlock(1024, 1024) # for feature x2d
         self.heads = Detect(no = 4+1+cfg.nc,
                                 anchors = cfg.MODEL.ANCHORS,
                                 ch = [1024]*len(cfg.MODEL.ANCHORS),
@@ -192,8 +192,8 @@ class YOWO_CUSTOM(YOWO):
         out_act_infer = out_infer[..., 5:]
 
         ## DF2
-        x = self.convBlock1(x) # for feature x
-        x = self.convBlock2(x)
+        x = self.convBlock1(x_2d) # for feature x2d
+        x = self.convBlock2(x) # for feature x2d
         outs = self.heads([x])
         
         # -> pred & infer

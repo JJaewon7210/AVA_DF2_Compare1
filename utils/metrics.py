@@ -1,7 +1,7 @@
 # Model validation metrics
 
 from pathlib import Path
-
+import warnings
 import matplotlib.pyplot as plt
 import numpy as np
 import torch
@@ -111,8 +111,18 @@ def compute_ap(recall, precision, v5_metric=False):
 
 
 class ConfusionMatrix:
-    # Updated version of https://github.com/kaanakan/object_detection_confusion_matrix
+    # Updated version of https://github.com/ultralytics/ultralytics/blob/main/ultralytics/utils/metrics.py
     def __init__(self, nc, conf=0.25, iou_thres=0.45):
+        """
+        A class for calculating and updating a confusion matrix for object detection and classification tasks.
+
+        Attributes:
+            task (str): The type of task, either 'detect' or 'classify'.
+            matrix (np.array): The confusion matrix, with dimensions depending on the task.
+            nc (int): The number of classes.
+            conf (float): The confidence threshold for detections.
+            iou_thres (float): The Intersection over Union threshold.
+        """
         self.matrix = np.zeros((nc + 1, nc + 1))
         self.nc = nc  # number of classes
         self.conf = conf
@@ -120,30 +130,35 @@ class ConfusionMatrix:
 
     def process_batch(self, detections, labels, only_box1=False):
         """
-        Return intersection-over-union (Jaccard index) of boxes.
-        Both sets of boxes are expected to be in (x1, y1, x2, y2) format.
-        Arguments:
-            detections (Array[N, 6]), x1, y1, x2, y2, conf, class
-            labels (Array[M, 5]), class, x1, y1, x2, y2
-        Returns:
-            None, updates confusion matrix accordingly
+        Update confusion matrix for object detection task.
+
+        Args:
+            detections (Array[N, 6]): Detected bounding boxes and their associated information.
+                                      Each row should contain (x1, y1, x2, y2, conf, class).
+            labels (Array[M, 5]): Ground truth bounding boxes and their associated class labels.
+                                  Each row should contain (class, x1, y1, x2, y2).
         """
         if isinstance(detections, torch.Tensor):
             detections = detections.detach().cpu().float()
         if isinstance(labels, torch.Tensor):
             labels = labels.detach().cpu().float()
+            
+        if detections is None:
+            gt_classes = labels
+            for gc in gt_classes:
+                self.matrix[self.nc, int(gc)] += 1  # background FN
+            return
         
-        
-        detections = detections[detections[:, 4] > self.conf]
+        detections = detections # [detections[:, 4] > self.conf]
         gt_classes = labels[:, 0].int()
         detection_classes = detections[:, 5].int()
 
         if only_box1:
-            iou = general.box_iou_only_box1(labels[:, 1:], detections[:, :4], standard='box2')
+            iou = general.box_iou_only_box1(labels[:, 1:], detections[:, :4], standard='box1')
         else:
             iou = general.box_iou(labels[:, 1:], detections[:, :4])
-
-        x = torch.where(iou > self.iou_thres)
+        
+        x = torch.where(iou > 0)# self.iou_thres)
         if x[0].shape[0]:
             matches = torch.cat((torch.stack(x, 1), iou[x[0], x[1]][:, None]), 1).cpu().numpy()
             if x[0].shape[0] > 1:
@@ -159,7 +174,7 @@ class ConfusionMatrix:
         for i, gc in enumerate(gt_classes):
             j = m0 == i
             if n and sum(j) == 1:
-                self.matrix[gc, detection_classes[m1[j]]] += 1  # correct
+                self.matrix[detection_classes[m1[j]], gc] += 1  # correct
             else:
                 self.matrix[self.nc, gc] += 1  # background FP
 
@@ -171,24 +186,39 @@ class ConfusionMatrix:
     def matrix(self):
         return self.matrix
 
-    def plot(self, save_dir='', names=()):
-        try:
-            import seaborn as sn
+    def plot(self, save_dir='', names=(), normalize=False):
 
-            array = self.matrix / (self.matrix.sum(0).reshape(1, self.nc + 1) + 1E-6)  # normalize
-            array[array < 0.005] = np.nan  # don't annotate (would appear as 0.00)
+        import seaborn as sn
 
-            fig = plt.figure(figsize=(12, 9), tight_layout=True)
-            sn.set(font_scale=1.0 if self.nc < 50 else 0.8)  # for label size
-            labels = (0 < len(names) < 99) and len(names) == self.nc  # apply names to ticklabels
-            sn.heatmap(array, annot=self.nc < 30, annot_kws={"size": 8}, cmap='Blues', fmt='.2f', square=True,
-                       xticklabels=names + ['background FP'] if labels else "auto",
-                       yticklabels=names + ['background FN'] if labels else "auto").set_facecolor((1, 1, 1))
-            fig.axes[0].set_xlabel('True')
-            fig.axes[0].set_ylabel('Predicted')
-            fig.savefig(Path(save_dir) / 'confusion_matrix.png', dpi=250)
-        except Exception as e:
-            pass
+        array = self.matrix / ((self.matrix.sum(0).reshape(1, self.nc + 1) + 1E-6) if normalize else 1)  # normalize
+        array[array < 0.005] = np.nan  # don't annotate (would appear as 0.00)
+
+        fig, ax = plt.subplots(1, 1, figsize=(12, 9), tight_layout=True)
+        nc, nn = self.nc, len(names)  # number of classes, names
+        sn.set(font_scale=1.0 if nc < 50 else 0.8)  # for label size
+        labels = (0 < nn < 99) and (nn == nc)  # apply names to ticklabels
+        ticklabels = (list(names) + ['background']) if labels else 'auto'
+        with warnings.catch_warnings():
+            warnings.simplefilter('ignore')  # suppress empty matrix RuntimeWarning: All-NaN slice encountered
+            sn.heatmap(array,
+                    ax=ax,
+                    annot=nc < 30,
+                    annot_kws={
+                        'size': 8},
+                    cmap='Blues',
+                    fmt='.2f' if normalize else '.0f',
+                    square=True,
+                    vmin=0.0,
+                    xticklabels=ticklabels,
+                    yticklabels=ticklabels).set_facecolor((1, 1, 1))
+        title = 'Confusion Matrix' + ' Normalized' * normalize
+        ax.set_xlabel('True')
+        ax.set_ylabel('Predicted')
+        ax.set_title(title)
+        plot_fname = Path(save_dir) / f'{title.lower().replace(" ", "_")}.png'
+        fig.savefig(plot_fname, dpi=250)
+        plt.close(fig)
+
 
     def print(self):
         for i in range(self.nc + 1):
